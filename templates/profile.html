@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}User{% endblock %}
+
+{% block content %}
+    <div class="float-start pfp">
+        <img src="{{user.image_url}}" alt="">
+    </div>
+    <div class="float-start">
+        <h1>{{user.full_name}}</h1>
+        <form>
+            <div>
+                <input type="submit" value="Edit" class="btn btn-primary" formaction="/users/{{user.id}}/edit">
+                <input type="submit" class="btn btn-danger" value="Delete" formaction="/users/{{user.id}}/delete" formmethod="POST">
+            </div>
+            <br>
+            <div>
+                <h3>Posts</h3>
+                <ul>
+                    {% for p in user.posts %}
+                    <li><a href="/posts/{{p.id}}">{{p.title}}</a></li>
+                    {% endfor %}
+                </ul>
+                <input class="btn btn-primary" type="submit" formaction="/users/{{user.id}}/posts/new" value="Add Post">
+            </div>
+    </form>
+    </div>
+{% endblock %}

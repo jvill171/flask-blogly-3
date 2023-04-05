@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Home Page{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <div class="row">
+        <div class="col-8 ">
+            <h1><b>Blogly Recent Posts</b></h1>
+        </div>
+        <hr>
+    </div>
+    <div class="row">
+        <div class="col-6">
+            {% for p in posts %}
+            <h2>{{p.title}}</h2>
+            <p>{{p.content}}</p>
+            <p><i>By {{p.user.full_name}} on {{p.friendly_date}}</i></p>
+            <hr>
+            {% endfor %}
+        </div>
+        <div class="h-100 col d-flex justify-content-center">
+            <a class="btn btn-success" href="/users">Start blogly-ing!</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
