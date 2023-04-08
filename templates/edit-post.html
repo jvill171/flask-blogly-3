@@ -19,6 +19,20 @@
             <textarea type="text" class="form-control" name="content">{{post.content}}</textarea>
         </div>
     </div>
+
+    <div class="form-check">
+        {% for t in tags %}
+        <div>
+            {% if t in post.tags %}
+            <input class="form-check-input" type="checkbox" name="tags" id="tag_{{t.id}}" value="{{t.id}}" checked>
+            {% else %}
+            <input class="form-check-input" type="checkbox" name="tags" id="tag_{{t.id}}" value="{{t.id}}">
+            {% endif %}
+            
+            <label class="form-check-label" for="tags">{{t.name}}</label>
+        </div>
+        {% endfor %}
+    </div>
     
     <div class="form-group row float-end">
         <div class="ml-auto mr-3">
