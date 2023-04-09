@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from app import app
-from models import db, User, Post, DEFAULT_IMAGE_URL
+from models import db, User, Post, PostTag, Tag, DEFAULT_IMAGE_URL
 
 # Use a test database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///users_test'
@@ -22,6 +22,8 @@ class FlaskTests(TestCase):
     def setUp(self):
         '''Add sample user'''
 
+        PostTag.query.delete()
+        Tag.query.delete()
         Post.query.delete()
         User.query.delete()
 
@@ -33,8 +35,17 @@ class FlaskTests(TestCase):
         db.session.add(post)
         db.session.commit()
 
+        tag = Tag(name='testTag')
+        db.session.add(tag)
+        db.session.commit()
+
+        post_tag = PostTag(post_id=post.id, tag_id=tag.id)
+        db.session.add(post_tag)
+        db.session.commit()
+
         self.user_id = user.id
         self.post_id = post.id
+        self.tag_id = tag.id
 
 
     
@@ -142,8 +153,6 @@ class FlaskTests(TestCase):
 
             resp = client.post(f'/users/{self.user_id}/posts/new', data=d, follow_redirects=True)
             html = resp.get_data(as_text=True)
-            
-            print(html)
 
             self.assertEqual(resp.status_code, 200)
             self.assertIn('<title>User</title>', html)
@@ -180,8 +189,6 @@ class FlaskTests(TestCase):
             d = {'title':'Edited Title', 'content':'Changed Content'}
             resp = client.post(f'/posts/{self.post_id}/edit', data=d, follow_redirects=True)
             html = resp.get_data(as_text=True)
-
-            print(html)
                 
             self.assertEqual(resp.status_code, 200)
             self.assertIn('<title>Post Details</title>', html)
@@ -202,6 +209,92 @@ class FlaskTests(TestCase):
             self.assertIn('<h3>Posts</h3>', html)
             self.assertIn('<ul>', html)
             self.assertNotIn('<li>', html)
+
+    def test_show_tags(self):
+        '''Test /tags route content'''
+        with app.test_client() as client:
+            resp = client.get('/tags')
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn('<title>All Tags</title>', html)
+            self.assertIn('testTag</a></li>', html)
+            self.assertIn('href="/tags/new">Add tag</a>', html)
+
+    def test_tag_details(self):
+        '''Test /tags/<int:tag_id> route content'''
+        with app.test_client() as client:
+            resp = client.get(f'/tags/{self.tag_id}')
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn('<title>Tag Details</title>', html)
+            self.assertIn('<h1>Posts tagged as:<br><u>testTag</u></h1>', html)
+            self.assertIn(f'<li><a href="/posts/{self.post_id}">Ftests test post!</a></li>', html)
+            self.assertIn(f'formaction="/tags/{self.tag_id}/edit">', html)
+
+    def test_newTag(self):
+        '''Test /tags/new route content'''
+        with app.test_client() as client:
+            resp = client.get('/tags/new')
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn('<title>New Tag</title>', html)
+            self.assertIn('<h1>Create a tag</h1>', html)
+            self.assertIn('<input type="text" class="form-control" name="name"></input>', html)
+            self.assertIn('formaction="/tags" formmethod="GET">Cancel</button>', html)
+
+    def test_do_newTag(self):
+        '''Test /tags/new route content, through POST method'''
+        with app.test_client() as client:
+            
+            d={'name': 'newTag'}
+            resp = client.post(f'/tags/new', data=d, follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn('<title>All Tags</title>', html)
+            self.assertIn('<h1>Tags</h1>', html)
+            self.assertIn(f'<li><a href="/tags/{self.tag_id}">testTag</a></li>', html)
+            self.assertIn(f'<li><a href="/tags/{self.tag_id + 1}">newTag</a></li>', html)
+
+    def test_editTag(self):
+        '''Test /tags/<int:tag_id>/edit route content'''
+        with app.test_client() as client:
+            resp = client.get(f'/tags/{self.tag_id}/edit')
+            html = resp.get_data(as_text=True)
+
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn('<title>Edit Tag</title>', html)
+            self.assertIn('<h1>Edit a tag</h1>', html)
+            self.assertIn('<input type="text" class="form-control" name="name" value="testTag"></input>', html)
+
+    def test_do_editTag(self):
+        '''Test /tags/<int:tag_id>/edit route content, through POST method'''
+        with app.test_client() as client:
+            d={'name': 'editTag'}
+            resp = client.post(f'/tags/{self.tag_id}/edit', data=d, follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn('<title>Tag Details</title>', html)
+            self.assertIn('<h1>Posts tagged as:<br><u>editTag</u></h1>', html)
+            self.assertIn(f'<li><a href="/posts/{self.post_id}">Ftests test post!</a></li>', html)
+            self.assertIn(f'<input type="submit" value="Edit" class="btn btn-primary" formaction="/tags/{self.tag_id}/edit">', html)
+
+    def test_do_deleteTag(self):
+        '''Test /tags/<int:tag_id>/delete route content, through POST method'''
+        with app.test_client() as client:
+            resp = client.post(f'/tags/{self.tag_id}/delete', follow_redirects=True)
+            html = resp.get_data(as_text=True)
+            
+            self.assertEqual(resp.status_code, 200)
+            self.assertIn('<title>All Tags</title>', html)
+            self.assertIn('<h1>Tags</h1>', html)
+            self.assertIn('<ul>', html)
+            self.assertNotIn('<li>', html)            
 
     def test_page_err_404(self):
         '''Test the 404 page'''
